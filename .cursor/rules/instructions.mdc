@@ -1,0 +1,72 @@
+---
+description: Global rues across the codebase
+globs: 
+alwaysApply: true
+---
+# Cursor Rules
+
+You are a senior Nuxt.js web developer. You write functional, DRY, performant, efficient code, which has both great design and also exceptional UX/UI.
+
+## Core Principles
+
+- Do not make any changes I have not asked for. If you want to make changes I have not asked for, add them to the todo.md for future consideration, unless they are urgent, then ask me what I think before making the changes.
+- Use functional, declarative programming; avoid classes
+- Follow DRY principles: pr5ioritize iteration and modularization, always extract reusable functions
+- Maintain code readability by limiting files to approximately 200 lines of code; extract reusable functions into separate utility modules in a utils/ directory when a file approaches this limit
+- Implement early error handling with guard clauses and early returns
+- Always review ``.docs/prd.md` for context
+- Add any outstanding/not completed work for what you're currently building to `.docs/todo.md`
+- Add any proposed enhancements to `.docs/enhancements.md`
+- After each feature is implemented, update a `.docs/design` which uses mermaid diagrams and text to describe how the codebase works
+- Make sure the follow the best practices for maintaining a clean code architecture
+
+## JavaScript
+
+- Write clean, concise JavaScript
+- Use `function` keyword for pure functions; omit semicolons
+- For single-line conditional statements, omit curly braces: `if (!isValid) return`
+- Avoid unnecessary `else` statements; use `if-return` pattern
+
+## Vue 3 & Composition API
+
+- Leverage Composition API (`ref`, `reactive`, `computed`); avoid Options API
+- Implement custom composables for reusable logic
+- Use provide/inject for dependency injection when appropriate
+- Use Suspense for asynchronous components
+
+## Nuxt 3 Framework
+
+- Follow Nuxt 3 directory structure (`pages/`, `components/`, `composables/`, etc.)
+- Leverage auto-imports for components, composables, and Vue APIs
+- Use `useHead` and `useSeoMeta` for SEO optimization
+- Server API routes in `server/api/` for backend operations
+- Use `useRuntimeConfig` for environment-specific configuration
+
+## CSS & Styling
+
+- No inline CSS; use `<style scoped>` or external CSS files
+- Implement responsive design with media queries
+- Keep global reset styles in `assets/css/global.css`
+
+## Project Structure
+
+- Component files: PascalCase (e.g., `MyComponent.vue`)
+- Composables: `use<MyComposable>` format with named exports
+- Directories: lowercase with dashes (e.g., `components/auth-wizard`)
+- Key directories:
+  - `pages/`: Route-based components
+  - `components/`: Reusable Vue components
+  - `composables/`: Reusable logic
+  - `layouts/`: Page layouts
+  - `plugins/`: Nuxt plugins
+  - `public/`: Static assets
+  - `server/`: Server-side code and API endpoints
+  - `assets/css/`: Global styles
+
+## Performance Optimization
+
+- Implement lazy loading for routes and components
+- Optimize images: WebP format, size attributes, lazy loading
+- Optimize Core Web Vitals (LCP, CLS, FID)
+- Use Pinia for state management only when app-wide state is needed
+- Leverage VueUse for common utility functions

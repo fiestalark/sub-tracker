@@ -1,0 +1,30 @@
+---
+description: Global documentation requirements
+globs: 
+alwaysApply: true
+---
+## Documentation Requirements
+
+- After implementing each feature, update documentation in the `/.docs` directory; do not update requirements until user has confirmed feature is done
+- Create or update a feature-specific Markdown file (e.g., `/.docs/design/feature4_steering-controls.md`)
+- Documentation must include:
+  - Mermaid diagrams showing the architecture/component relationships
+  - Text descriptions explaining key concepts and design decisions
+  - Function interaction diagrams (for complex features)
+  - Any API interfaces or important type definitions
+- Follow this structure for each feature document:
+  1. Feature overview (brief description)
+  2. Architecture diagram (Mermaid)
+  3. Key components and their responsibilities
+  4. Data flow explanation
+  5. Function Call Graph (Mermaid) that:
+     - Map how functions call each other within files and across the codebase
+     - Visualize data flow between key functions
+     - Highlight dependencies between different modules
+     - Group related functions by color or container to show logical domains
+     - Use Mermaid flowcharts with nodes representing functions and arrows showing call/data relationships
+     - For complex features, include a separate "Function Call Graph" section with detailed interaction maps
+  6. API documentation (if applicable)
+  7. Implementation notes or considerations
+- Link to relevant documentation in commit messages when submitting changes
+- Include function interaction diagrams that:
