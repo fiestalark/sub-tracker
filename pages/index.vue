@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-page">
+  <div v-if="showDashboard" class="dashboard-page">
     <div class="dashboard-header">
       <h1>Your Subscription Dashboard</h1>
       <AppButton @click="refreshEmails" :disabled="isLoading">
@@ -47,30 +47,88 @@
     </div>
 
   </div>
+  <div v-else class="landing-page">
+    <section class="hero-section">
+      <h1>Track Your Subscriptions Effortlessly</h1>
+      <p>Never lose track of recurring payments again. Sign in to get started.</p>
+      <AppButton @click="login" class="google-signin-button">
+        <img src="/google-logo.svg" alt="Google logo" width="20" height="20" />
+        Sign in with Google
+      </AppButton>
+    </section>
+  </div>
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
+import { useSupabaseUser, useSupabaseClient } from '#imports'
+import AppButton from '~/components/ui/AppButton.vue' // Assuming button component path
+import AppCard from '~/components/ui/AppCard.vue' // Assuming card component path
+import AppSpinner from '~/components/ui/AppSpinner.vue' // Assuming spinner component path
+
 definePageMeta({
   layout: 'default',
 })
 
+const router = useRouter()
+const user = useSupabaseUser()
+const supabase = useSupabaseClient()
 const isLoading = ref(false)
+const isInitialLoad = ref(true)
 
-const refreshEmails = async () => {
-  console.log('Refreshing emails...');
-  isLoading.value = true;
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  isLoading.value = false;
-  console.log('Email refresh complete (simulated).');
+// Show dashboard only when signed in
+const showDashboard = computed(() => !!user.value)
+
+// Handle initial load
+onMounted(async () => {
+  if (showDashboard.value) {
+    isLoading.value = true
+    // Force a re-render after initial mount
+    await nextTick()
+    isInitialLoad.value = false
+    isLoading.value = false
+  }
+})
+
+// Modified login function with better error handling
+const login = async () => {
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        scopes: 'openid email profile https://www.googleapis.com/auth/gmail.readonly',
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    })
+    if (error) throw error
+  } catch (error) {
+    console.error('Error during Google sign-in:', error)
+    // Add user-facing error handling if needed
+  }
 }
 
-onMounted(() => {
+const refreshEmails = async () => {
+  if (import.meta.server) return 
+  isLoading.value = true
+  try {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    // Add actual refresh logic here
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Add this to help with transition after auth
+watch(user, async (newUser) => {
+  if (newUser && isInitialLoad.value) {
+    // Force a client-side navigation to ensure proper rendering
+    await router.push('/dashboard')
+  }
 })
 </script>
 
 <style scoped>
-.dashboard-page {
-}
 
 .dashboard-header {
   display: flex;
@@ -170,5 +228,44 @@ li:last-child {
 .empty-state p {
   color: var(--color-muted);
   margin-bottom: var(--space-lg);
+}
+
+/* Styles for the landing page / signed-out state */
+.landing-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh; /* Adjust as needed */
+  text-align: center;
+}
+
+.hero-section {
+  max-width: 600px;
+  padding: var(--space-xl);
+}
+
+.hero-section h1 {
+  font-size: var(--font-3xl);
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+}
+
+.hero-section p {
+  font-size: var(--font-lg);
+  color: var(--color-muted);
+  margin-bottom: var(--space-lg);
+}
+
+.google-signin-button {
+  /* Style the button as needed, potentially extending AppButton */
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  font-weight: 500;
+}
+
+.google-signin-button img {
+  display: block; /* Prevents extra space below image */
 }
 </style> 

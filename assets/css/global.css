@@ -7,10 +7,6 @@
   padding: 0;
 }
 
-html {
-  font-size: 32px; /* Set root font size to double the default (16px) */
-}
-
 html,
 body {
   height: 100%;
@@ -54,23 +50,20 @@ a {
   --color-error-bg: #fee2e2;
   --color-error-text: #b91c1c;
 
-  /* Doubled Spacing */
-  --space-xs: 8px;   /* was 4px */
-  --space-sm: 16px;  /* was 8px */
-  --space-md: 32px;  /* was 16px */
-  --space-lg: 48px;  /* was 24px */
-  --space-xl: 64px;  /* was 32px */
-  --space-2xl: 96px; /* was 48px */
+  --space-xs: 0.25rem;  /* 4–5 px */
+  --space-sm: 0.5rem;   /* 8–10 px */
+  --space-md: 1rem;     /* 16–20 px */
+  --space-lg: 1.5rem;   /* 24–30 px */
+  --space-xl: 2rem;     /* 32–40 px */
+  --space-2xl: 3rem;    /* 48–60 px */
 
-  /* Base Font Size (set on html element now) */
-  /* --font-base: 32px; */ /* Variable removed/commented as font-size is set on html */
+  /* Fonts (adjust if you want bigger) */
+  --font-sm: 0.875rem;
+  --font-lg: 1.125rem;
+  --font-xl: 1.25rem;
+  --font-2xl: 1.5rem;
+  --font-3xl: 1.875rem;
 
-  /* Font Scale (Original rem values - will scale with html font-size) */
-  --font-sm: 0.875rem; /* 14px @ 16px base -> 28px @ 32px base */
-  --font-lg: 1.125rem; /* 18px @ 16px base -> 36px @ 32px base */
-  --font-xl: 1.25rem;  /* 20px @ 16px base -> 40px @ 32px base */
-  --font-2xl: 1.5rem;  /* 24px @ 16px base -> 48px @ 32px base */
-  --font-3xl: 1.875rem; /* 30px @ 16px base -> 60px @ 32px base */
 
   /* Adjusted border-radius slightly */
   --border-radius-sm: 6px;

@@ -1,35 +1,35 @@
 <template>
   <div>
     <!-- Header -->
-    <header class="flex justify-between items-center p-4 border-b">
-      <div v-if="user" class="flex items-center">
+    <header class="dashboard-header">
+      <div v-if="user" class="user-info">
         <!-- Placeholder for Avatar -->
-        <div class="w-8 h-8 rounded-full bg-gray-300 mr-3"></div>
+        <div class="avatar-placeholder"></div>
         <span>{{ user.email }}</span>
       </div>
       <LogoutButton @click="handleLogout" />
     </header>
 
     <!-- Main Content -->
-    <main class="p-6">
-      <h1 class="text-2xl font-semibold mb-4">Dashboard</h1>
+    <main class="dashboard-main">
+      <h1 class="dashboard-title">Dashboard</h1>
 
       <!-- Placeholder for Scope Notice -->
       <!-- <ScopeNotice v-if="needsGmailScope" /> -->
 
-      <div class="mb-6">
+      <div class="summary-section">
         <!-- Placeholder for SubscriptionSummary -->
-        <div class="bg-gray-100 p-4 rounded shadow">
-          <h2 class="font-bold mb-2">Subscription Summary</h2>
+        <div class="summary-card">
+          <h2 class="summary-title">Subscription Summary</h2>
           <p>Total Spend: $XXX.XX</p>
           <p>Upcoming Renewals: X</p>
         </div>
       </div>
 
-      <div class="mb-6">
+      <div class="list-section">
          <!-- Placeholder for SubscriptionList -->
-         <div class="bg-gray-100 p-4 rounded shadow">
-            <h2 class="font-bold mb-2">Subscription List</h2>
+         <div class="list-card">
+            <h2 class="list-title">Subscription List</h2>
             <ul>
                 <li>Vendor A - $10.00 - Renews 2024-08-01</li>
                 <li>Vendor B - $15.00 - Renews 2024-08-15</li>
@@ -39,7 +39,7 @@
 
       <div>
         <button
-           class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+           class="refresh-button"
            @click="handleRefreshEmails"
          >
            Refresh Emails
@@ -52,10 +52,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watchEffect } from 'vue'
-import { useRouter } from 'vue-router'
-// import { useSupabaseClient, useSupabaseUser } from '#supabase/client' // Removed - rely on auto-import
+import { onMounted, watchEffect } from 'vue'
+import { useSupabaseClient } from '#imports'
 
+
+const supabase = useSupabaseClient()
+const user = useSupabaseUser()
 // Composables for Supabase and user state
 
 // Placeholder state for Gmail scope check
@@ -67,7 +69,7 @@ onMounted(() => {
   // This might be handled globally by middleware as well
   watchEffect(() => {
       if (!user.value) {
-          router.push('/login')
+          navigateTo('/login')
       }
   })
 
@@ -84,7 +86,7 @@ onMounted(() => {
 //     // Supabase helper functions or custom logic might be needed.
 //     // For now, assume scope is granted if provider_token exists, which is NOT accurate.
 //     console.log('Provider token exists, assuming scope granted for now.');
-//     needsGmailScope.value = false; 
+//     needsGmailScope.value = false;
 //   } else {
 //     console.warn('Provider token missing or session error:', error);
 //     needsGmailScope.value = true;
@@ -98,11 +100,12 @@ async function handleLogout() {
     // Optionally show an error message to the user
   } else {
     // Redirect handled by auth state watcher or middleware
-     router.push('/login'); // Explicit redirect just in case
+    navigateTo('/login');
   }
 }
 
 function handleRefreshEmails() {
+  if (import.meta.server) return 
   console.log('Refresh Emails button clicked - Implement manual trigger logic here');
   // This should likely call a backend endpoint (e.g., Edge Function trigger)
   // e.g., await $fetch('/api/gmail/sync', { method: 'POST' })
@@ -113,5 +116,76 @@ function handleRefreshEmails() {
 </script>
 
 <style scoped>
-/* Add component-specific styles */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-placeholder {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: var(--color-surface-muted);
+  margin-right: var(--space-md);
+}
+
+.dashboard-main {
+  padding: var(--space-xl);
+}
+
+.dashboard-title {
+  font-size: var(--font-2xl);
+  font-weight: 600;
+  margin-bottom: var(--space-lg);
+}
+
+.summary-section,
+.list-section {
+  margin-bottom: var(--space-xl);
+}
+
+.summary-card,
+.list-card {
+  background-color: var(--color-surface);
+  padding: var(--space-lg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.summary-title,
+.list-title {
+  font-weight: bold;
+  margin-bottom: var(--space-sm);
+}
+
+.list-card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.list-card li {
+  margin-bottom: var(--space-xs);
+}
+
+.refresh-button {
+  padding: var(--space-sm) var(--space-lg);
+  background-color: var(--color-primary);
+  color: var(--color-button-text);
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.refresh-button:hover {
+  background-color: var(--color-primary-dark);
+}
 </style> 

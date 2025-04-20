@@ -1,94 +1,88 @@
 <template>
-  <div class="flex flex-col items-center justify-center min-h-screen">
-    <div v-if="loading" class="text-center">
-      <p>Completing sign-in...</p>
-      <!-- Basic Spinner Placeholder -->
+  <div class="callback-container">
+    <!-- 1. still-loading state -->
+    <div v-if="loading" class="loading-state">
+      <p>Completing sign‑in…</p>
     </div>
-    <div v-else-if="errorMessage">
-      <ErrorBanner :message="errorMessage" class="mb-4" />
-      <NuxtLink to="/login" class="text-indigo-600 hover:text-indigo-800">
+
+    <!-- 2. error state -->
+    <div v-else-if="errorMessage" class="error-state">
+      <ErrorBanner :message="errorMessage" class="error-banner-spacing" />
+      <NuxtLink to="/login" class="retry-link">
         Retry Login
       </NuxtLink>
     </div>
+
+    <!-- 3. success: instant redirect -->
     <div v-else>
-      <p>Redirecting...</p>
+      <p>Redirecting…</p>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router' // Use vue-router directly or Nuxt's useRouter
-// import { useSupabaseClient } from '#supabase/client' // Removed - rely on auto-import
+<script setup lang="ts">
+import { ref, watchEffect, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useSupabaseUser, navigateTo } from '#imports'          // no client needed now
+import ErrorBanner from '~/components/ui/ErrorBanner.vue'
 
-// Assuming useSupabaseClient composable is available
-const router = useRouter() // Or useNuxtApp().$router in some Nuxt contexts
+const route        = useRoute()
+const user         = useSupabaseUser()
 
-const loading = ref(true)
+const loading      = ref(true)
 const errorMessage = ref('')
 
-onMounted(async () => {
-  // Supabase client should automatically handle the session
-  // when initialized, especially with the Nuxt module.
-  // We might not need getSessionFromUrl explicitly if using nuxt/supabase
-  // Let's watch the auth state instead for robustness
+/**
+ * 1. If the module put ?error_description=… in the callback URL
+ *    surface it and stop loading.
+ */
+onMounted(() => {
+  const err = route.query.error_description as string | undefined
+  if (err) {
+    errorMessage.value = decodeURIComponent(err.replace(/\+/g, ' '))
+    loading.value      = false
+  }
+})
 
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    // Unsubscribe after first event or navigation
-    if (subscription) {
-      subscription.unsubscribe()
-    }
-
-    if (event === 'SIGNED_IN' && session) {
-      // Successfully signed in
-      loading.value = false
-      router.push('/dashboard')
-    } else if (event === 'SIGNED_OUT') {
-      // Handle potential sign-out during callback?
-      loading.value = false
-      errorMessage.value = 'Session ended unexpectedly. Please try logging in again.'
-      router.push('/login') // Redirect to login if sign out happens
-    } else if (event === 'INITIAL_SESSION') {
-       // If a session already exists when page loads
-       if (session) {
-          loading.value = false
-          router.push('/dashboard')
-       } else {
-         // If no session, maybe there was an error in the URL hash
-         // Let's explicitly try getSessionFromUrl as a fallback or primary method
-         // If the watcher doesn't fire SIGNED_IN quickly.
-         // This part depends heavily on how @nuxtjs/supabase handles the flow.
-         // For now, keep it simple assuming the watcher works.
-         // If issues arise, we might need getSessionFromUrl().
-         // Consider adding a timeout? If SIGNED_IN doesn't fire after ~5s, show error.
-         loading.value = false;
-         errorMessage.value = 'Failed to process authentication callback. Please retry.';
-       }
-    } else if (event === 'AUTH_CODE_ERROR') {
-      // Handle specific OAuth errors if possible
-      loading.value = false;
-      errorMessage.value = 'There was an error during authentication. Please retry.';
-    }
-    // Other events like TOKEN_REFRESHED, USER_UPDATED might occur
-  });
-
-  // Timeout fallback in case onAuthStateChange doesn't fire as expected
-  setTimeout(() => {
-    if (loading.value) {
-      loading.value = false;
-      errorMessage.value = 'Authentication timed out. Please try again.';
-      // Consider explicitly calling getSession to double-check
-      // const { data: { session } } = await supabase.auth.getSession()
-      // if (session) router.push('/dashboard')
-    }
-  }, 10000); // 10 second timeout
-
-});
-
-// Optional: Define layout
-// definePageMeta({ layout: 'minimal' });
+/**
+ * 2. When the automatic PKCE exchange finishes successfully,
+ *    `useSupabaseUser()` becomes non‑null → redirect.
+ */
+watchEffect(async () => {
+  if (user.value) {
+    await navigateTo('/dashboard')   // also strips ?code=… from the URL
+  }
+  // when we land here without user AND without errorMessage
+  // we're still waiting → keep the "loading" state
+  if (!user.value && !errorMessage.value) loading.value = true
+})
 </script>
 
 <style scoped>
-/* Add any specific styles if needed */
+.callback-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh; /* Replaces min-h-screen */
+}
+
+.loading-state,
+.error-state {
+  text-align: center; /* Replaces text-center */
+}
+
+.error-banner-spacing {
+  margin-bottom: var(--space-lg); /* Replaces mb-4 */
+}
+
+.retry-link {
+  color: var(--color-primary); /* Replaces text-indigo-600 */
+  text-decoration: none;
+}
+
+.retry-link:hover {
+  color: var(--color-primary-dark); /* Replaces hover:text-indigo-800, assuming a darker primary */
+  text-decoration: underline;
+}
 </style> 

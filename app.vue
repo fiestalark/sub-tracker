@@ -7,6 +7,4 @@
 </template>
 
 <style>
-/* Import global styles */
-@import "~/assets/css/global.css";
 </style>
