@@ -1,112 +1,59 @@
 <template>
-  <div class="login-page">
-    <div class="hero-section">
-      <h1>Track Your Subscriptions Effortlessly</h1>
-      <p class="subheading">
-        Connect your Gmail to automatically find and manage your recurring payments.
-      </p>
-      <AppButton @click="handleLogin" class="login-button">
-        <!-- Add Google Icon SVG/Component here later -->
-        <span class="icon-placeholder">G</span> Sign in with Google
-      </AppButton>
-      <p v-if="error" class="error-message">{{ error }}</p>
+  <div class="flex flex-col items-center justify-center min-h-screen">
+    <h1 class="text-3xl font-bold mb-6">Subscription Tracker</h1>
+    <div class="w-full max-w-xs">
+      <ErrorBanner :message="errorMessage" class="mb-4" />
+
+      <GoogleSignInButton @click="handleSignIn" :disabled="loading" />
+
+      <div v-if="loading" class="mt-4 text-center">
+        <!-- Basic Spinner Placeholder -->
+        <p>Loading...</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-// Use the default layout
-definePageMeta({
-  layout: 'default'
-})
+import { ref } from 'vue'
+// import { useSupabaseClient } from '#supabase/client' // Removed - rely on auto-import
 
-// Placeholder for error messages
-const error = ref(null)
+// Assume useSupabaseClient composable provides the Supabase instance
+const supabase = useSupabaseClient()
 
-// Placeholder for the actual login logic
-const handleLogin = async () => {
-  error.value = null // Clear previous errors
-  console.log('Login button clicked - Implement Google OAuth flow here');
+const loading = ref(false)
+const errorMessage = ref('')
+
+async function handleSignIn() {
+  loading.value = true
+  errorMessage.value = ''
+
   try {
-    // Example using Nuxt Supabase module (uncomment and adapt)
-    // const supabase = useSupabaseClient()
-    // const { error: authError } = await supabase.auth.signInWithOAuth({
-    //   provider: 'google',
-    //   options: {
-    //     redirectTo: `${window.location.origin}/auth/callback`, // Your callback URL
-    //     queryParams: {
-    //       access_type: 'offline',
-    //       prompt: 'consent',
-    //       scope: 'https://www.googleapis.com/auth/gmail.readonly' // Request Gmail scope
-    //     }
-    //   }
-    // })
-    // if (authError) throw authError
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        scopes: 'openid email profile https://www.googleapis.com/auth/gmail.readonly',
+        // Optional: specify redirect URL if needed, otherwise Supabase defaults
+        // redirectTo: `${window.location.origin}/auth/callback`
+      }
+    })
 
-    // Simulate an error for UI testing
-    // throw new Error('Failed to connect to Google. Please try again.')
+    if (error) throw error
 
-  } catch (err) {
-    console.error('Login failed:', err);
-    error.value = err.message || 'An unexpected error occurred during login.';
+    // If successful, Supabase handles the redirect automatically.
+    // Loading state will persist until the page redirects.
+
+  } catch (error) {
+    console.error('Error signing in with Google:', error)
+    errorMessage.value = error.error_description || error.message || 'An unexpected error occurred.'
+    loading.value = false
   }
 }
+
+// Define page meta or layout if necessary
+// definePageMeta({ layout: 'auth' });
 </script>
 
 <style scoped>
-.login-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh; /* Adjust as needed to center vertically */
-  text-align: center;
-  padding: var(--space-xl) var(--space-md);
-}
-
-.hero-section {
-  max-width: 600px;
-}
-
-h1 {
-  font-size: var(--font-3xl);
-  font-weight: 700;
-  margin-bottom: var(--space-md);
-  color: var(--color-text);
-}
-
-.subheading {
-  font-size: var(--font-lg);
-  color: var(--color-muted);
-  margin-bottom: var(--space-xl);
-}
-
-.login-button {
-  /* Add specific styles if needed, e.g., width */
-  padding: var(--space-md) var(--space-xl);
-  font-size: var(--font-lg);
-}
-
-.login-button .icon-placeholder {
-  /* Basic placeholder style - replace with actual icon */
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  line-height: 20px;
-  text-align: center;
-  margin-right: var(--space-sm);
-  font-weight: bold;
-  background-color: #eee;
-  border-radius: 50%;
-}
-
-.error-message {
-  margin-top: var(--space-lg);
-  color: var(--color-error-text);
-  background-color: var(--color-error-bg);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--border-radius-sm);
-  display: inline-block; /* Prevent full width */
-  /* Add slide-down animation if desired */
-}
+/* Add any specific styles if needed */
 </style> 

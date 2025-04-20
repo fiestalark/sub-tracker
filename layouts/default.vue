@@ -9,9 +9,9 @@
           <!-- Add more nav links as needed -->
         </nav>
         <div class="user-profile">
-          <!-- Placeholder for user avatar/login status -->
-          <span v-if="user">{{ user.email }}</span>
-          <NuxtLink v-else to="/login">Login</NuxtLink>
+            <span v-if="user">{{ user.email }}</span>
+            <LogoutButton v-if="user" @click="supabase.auth.signOut()" />
+            <NuxtLink v-else to="/login">Login</NuxtLink>
         </div>
       </div>
     </header>
@@ -31,9 +31,10 @@
 </template>
 
 <script setup>
+import { useSupabaseUser } from '#imports'
 // Placeholder for user state - replace with actual auth logic later
 // const user = useSupabaseUser() // Example if using Nuxt Supabase module
-const user = ref(null) // Simulate logged out state
+const user = useSupabaseUser()      // Simulate logged out state
 
 // If using Supabase client directly
 // import { useSupabaseClient } from '#imports'
