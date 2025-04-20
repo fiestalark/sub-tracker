@@ -23,7 +23,7 @@
 <script setup lang="ts">
 import { ref, watchEffect, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useSupabaseUser, navigateTo } from '#imports'          // no client needed now
+import { useSupabaseUser, navigateTo } from '#imports'
 import ErrorBanner from '~/components/ui/ErrorBanner.vue'
 
 const route        = useRoute()
@@ -45,16 +45,27 @@ onMounted(() => {
 })
 
 /**
- * 2. When the automatic PKCE exchange finishes successfully,
- *    `useSupabaseUser()` becomes non‑null → redirect.
+ * 2. When the automatic PKCE exchange finishes successfully on this /auth/callback route,
+ *    `useSupabaseUser()` becomes non‑null → redirect to the actual dashboard at '/'.
  */
 watchEffect(async () => {
+  // Check for user first
   if (user.value) {
-    await navigateTo('/dashboard')   // also strips ?code=… from the URL
+    // User session confirmed, navigate to the main dashboard page
+    await navigateTo('/')
+    return // Stop further checks in this effect run
   }
-  // when we land here without user AND without errorMessage
-  // we're still waiting → keep the "loading" state
-  if (!user.value && !errorMessage.value) loading.value = true
+
+  // Handle error from query params (only if no user yet)
+  const err = route.query.error_description as string | undefined
+  if (err) {
+    errorMessage.value = decodeURIComponent(err.replace(/\+/g, ' '))
+    loading.value = false
+    return // Stop further checks
+  }
+
+  // If still no user and no error, remain in loading state.
+  loading.value = true
 })
 </script>
 

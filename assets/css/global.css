@@ -7,6 +7,10 @@
   padding: 0;
 }
 
+html {
+  font-size: 32px; /* Set root font size to double the default (16px) */
+}
+
 html,
 body {
   height: 100%;
