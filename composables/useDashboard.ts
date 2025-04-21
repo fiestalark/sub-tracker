@@ -1,96 +1,152 @@
 import { ref, watchEffect } from 'vue'
-import { useSupabaseUser, useSupabaseClient } from '#imports'
+import {
+  useSupabaseClient,
+  useSupabaseUser,
+} from '#imports'
+import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js'
+import type { GmailSyncResponse } from '@/types/gmailSync'
+import { callFunction } from '@/utils/supabaseFunctions'
 
-export function useDashboard () {
-  // STATE
-  const user = useSupabaseUser()
-  const supabase = useSupabaseClient() // Needed for API calls
-  const isLoading = ref(false)
-  const syncStatus = ref('')
-  const subscriptions = ref([]) // Placeholder for subscription data
-  const syncError = ref(false) // Keep track of error state
+/* ------------------------------------------------------------------ */
+/* local types                                                        */
+/* ------------------------------------------------------------------ */
 
-  // ACTIONS
-  async function refreshEmails () {
-    if (import.meta.server) return // Guard against server-side execution
+interface Subscription {
+  id: string
+  user_id: string
+  vendor_name: string
+  amount: number | null
+  currency: string
+  next_renewal_date: string | null
+  email_date: string | null
+  email_subject: string | null
+  email_sender: string | null
+  created_at: string
+  updated_at: string
+}
 
-    isLoading.value = true
-    syncStatus.value = 'Starting email sync...'
-    syncError.value = false
 
-    try {
-      console.log('Calling /api/gmail/sync endpoint...')
-      const response = await $fetch('/api/gmail/sync', { // Use $fetch directly
-        method: 'POST',
-        // No body needed unless API requires it
-      })
+/* ------------------------------------------------------------------ */
+/* composable                                                         */
+/* ------------------------------------------------------------------ */
 
-      console.log('Gmail Sync API Response:', response)
-      // Assuming response has a count or similar field
-      syncStatus.value = `Sync successful! Processed emails.` // Update message based on actual API response structure
-      // TODO: Refetch subscriptions after successful sync
-      await loadSubscriptions() // Example: reload subscriptions
+export function useDashboard() {
+  const user            = useSupabaseUser()
+  const supabase        = useSupabaseClient<SupabaseClient>()
 
-    } catch (error) {
-      console.error('Error calling Gmail Sync API:', error)
-      const data = error?.data // Nuxt $fetch error data
-      const message = data?.message || data?.statusMessage || error?.message || 'An unknown error occurred during sync.'
-      syncStatus.value = `Sync failed: ${message}`
-      syncError.value = true
+  /* UI state */
+  const isLoading       = ref(false)
+  const syncStatus      = ref('')
+  const syncError       = ref<string | false>(false)
+  const needsReGrant    = ref(false)
 
-    } finally {
-      isLoading.value = false
-      // Optional: Auto-hide status after delay
-      // setTimeout(() => { syncStatus.value = null }, 7000)
+  /* data */
+  const subscriptions   = ref<Subscription[]>([])
+  const totals          = ref<{ monthly: number; yearly: number } | null>(null)
+  const upcoming        = ref<GmailSyncResponse['upcomingRenewals']>([])
+  const categories      = ref<GmailSyncResponse['categoryBreakdown']>([])
+  const unparsed        = ref<GmailSyncResponse['unparsed']>([])
+
+  /* --------------------------- helpers --------------------------- */
+
+  async function loadSubscriptions() {
+    if (!user.value) return
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.value.id)
+      .order('vendor_name') as {
+        data: Subscription[] | null
+        error: PostgrestError | null
+      }
+
+    if (error) {
+      syncError.value  = error.message
+      syncStatus.value = 'Error loading subscriptions'
+      return
     }
+
+    subscriptions.value = data ?? []
   }
 
-  // Placeholder for loading subscriptions - implement based on your data source
-  async function loadSubscriptions () {
-    if (!user.value) return // Don't load if no user
+  /* --------------------------- actions --------------------------- */
 
-    // isLoading.value = true // Optionally show loading state for subscriptions
-    console.log('Placeholder: Loading subscriptions for user:', user.value.id)
-    // Example: Fetch from Supabase table
-    // const { data, error } = await supabase
-    //   .from('subscriptions')
-    //   .select('*')
-    //   .eq('user_id', user.value.id);
-    //
-    // if (error) {
-    //   console.error('Error loading subscriptions:', error)
-    //   syncStatus.value = `Error loading subscriptions: ${error.message}`
-    //   syncError.value = true
-    // } else {
-    //   subscriptions.value = data
-    // }
-    // isLoading.value = false // Reset loading state
-    subscriptions.value = [ // TEMPORARY DUMMY DATA
-      { id: 1, name: 'Netflix', cost: 15.99, next_renewal: '2024-10-30', category: 'Streaming' },
-      { id: 2, name: 'Spotify', cost: 10.99, next_renewal: '2024-11-05', category: 'Music' },
-      { id: 3, name: 'AWS', cost: 25.00, next_renewal: '2024-11-01', category: 'Cloud Services' }
-    ]
+  async function refreshEmails() {
+    if (import.meta.server) return
+  
+    isLoading.value = true
+    syncStatus.value = 'Syncing emails…'
+    syncError.value = false
+    needsReGrant.value = false
+  
+    let data
+    try {
+      data = await callFunction('sync-gmail')
+    } catch (err: unknown) {
+      let msg = 'unknown_error'
+      if (err instanceof Error) {
+        msg = err.message
+      }
+      syncError.value = msg
+  
+      if (msg === 'revoked_or_expired' || msg === 'no_google_token') {
+        needsReGrant.value = true
+        syncStatus.value =
+          'Google permission revoked or missing — please re‑grant access.'
+      } else {
+        syncStatus.value = `Sync failed: ${msg}`
+      }
+  
+      isLoading.value = false
+      return
+    }
+  
+    totals.value = data.totals
+    upcoming.value = data.upcomingRenewals
+    categories.value = data.categoryBreakdown
+    unparsed.value = data.unparsed
+    syncStatus.value =
+      `Processed ${data.processed} email${data.processed === 1 ? '' : 's'}` +
+      (data.moreAvailable ? ' — click again to fetch more.' : '')
+  
+    await loadSubscriptions()
+    isLoading.value = false
   }
+  
 
-  // INIT: Load subscriptions when user context is available or changes
+  /* ---------------------- auto init / reset ---------------------- */
+
   watchEffect(() => {
     if (user.value) {
       loadSubscriptions()
     } else {
-      // Reset state if user logs out
       subscriptions.value = []
-      syncStatus.value = ''
-      isLoading.value = false
+      totals.value        = null
+      upcoming.value      = []
+      categories.value    = []
+      unparsed.value      = []
+      syncStatus.value    = ''
+      syncError.value     = false
+      needsReGrant.value  = false
     }
   })
 
   return {
+    /* state */
     user,
     isLoading,
     syncStatus,
     syncError,
+    needsReGrant,
+    /* data */
     subscriptions,
+    totals,
+    upcoming,
+    categories,
+    unparsed,
+    /* actions */
     refreshEmails,
-    loadSubscriptions // Expose if needed elsewhere
+    loadSubscriptions,
   }
-} 
+}

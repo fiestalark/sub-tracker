@@ -2,7 +2,7 @@
   <div class="app-layout">
     <header class="app-header">
       <div class="container header-container">
-        <div class="logo">SubTracker</div>
+        <div class="logo">Check Subs</div>
         <nav class="navigation">
           <NuxtLink to="/">Dashboard</NuxtLink>
           <NuxtLink to="/settings">Settings</NuxtLink>

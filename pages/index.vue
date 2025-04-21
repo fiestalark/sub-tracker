@@ -11,7 +11,7 @@
 import { useSupabaseUser } from '#imports'
 // Use Nuxt's auto-import for components unless paths are complex/ambiguous
 // import Dashboard from '@/components/dashboard/Dashboard.vue' // Auto-imported usually
-// import LandingHero from '@/components/landing/Hero.vue' // Assuming path, adjust if needed
+import LandingHero from '@/components/LandingHero.vue' // Assuming path, adjust if needed
 
 // Define layout (optional, Nuxt might infer 'default')
 definePageMeta({

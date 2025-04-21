@@ -2,3 +2,16 @@
 # Example:
 # *.log
 # tmp/
+
+global.css
+layout.css
+*.md
+*.mdc
+public/*
+.gitignore
+.repomixignore
+default.vue
+minimal.vue
+AppButton.vue
+AppCard.vue
+AppSpinner.vue

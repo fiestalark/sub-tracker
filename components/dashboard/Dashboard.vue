@@ -2,7 +2,7 @@
   <div class="dashboard-page">
     <div class="dashboard-header">
       <h1>Your Subscription Dashboard</h1>
-      <AppButton @click="refreshEmails" :disabled="isLoading">
+      <AppButton :disabled="isLoading" @click="refreshEmails">
         <span v-if="isLoading">
           <AppSpinner style="width: 1em; height: 1em; border-width: 2px; margin-right: var(--space-sm);"/> Refreshing...
         </span>
@@ -32,8 +32,17 @@
         <!-- Use subscriptions data from composable -->
         <ul v-if="subscriptions.length">
           <li v-for="sub in subscriptions" :key="sub.id">
-             {{ sub.name }} - ${{ sub.cost.toFixed(2) }} - Renews {{ sub.next_renewal }}
+            {{ sub.vendor_name }} –
+            <span v-if="sub.amount != null">
+              ${{ Number(sub.amount).toFixed(2) }}
+            </span>
+            <span v-else>—</span>
+            <span v-if="sub.next_renewal_date">
+              "–Renews" {{ new Date(sub.next_renewal_date).toLocaleDateString() }}
+            </span>
           </li>
+
+
         </ul>
         <p v-else>No upcoming renewals found.</p>
         <template #footer>
@@ -56,6 +65,9 @@
     <!-- Placeholder/Empty state if needed -->
     <!-- <div v-if="!isLoading && !subscriptions.length" class="empty-state"> ... </div> -->
 
+    <!-- Add the Unparsed List component below the grid -->
+    <UnparsedList :unparsed="unparsedRef ?? []" />
+
   </div>
 </template>
 
@@ -64,9 +76,17 @@ import { useDashboard } from '@/composables/useDashboard'
 import AppButton from '~/components/ui/AppButton.vue'
 import AppCard from '~/components/ui/AppCard.vue'
 import AppSpinner from '~/components/ui/AppSpinner.vue'
+import UnparsedList from '~/components/dashboard/UnparsedList.vue'
 
 // Get state and actions from the composable
-const { subscriptions, isLoading, syncStatus, syncError, refreshEmails } = useDashboard()
+const { 
+  subscriptions, 
+  isLoading, 
+  syncStatus, 
+  syncError, 
+  refreshEmails, 
+  unparsed: unparsedRef // Add unparsed here
+} = useDashboard()
 
 // No need for user check here, parent `pages/index.vue` handles auth wall
 
