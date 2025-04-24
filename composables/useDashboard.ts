@@ -71,7 +71,17 @@ export function useDashboard() {
   }
 
   /* --------------------------- actions --------------------------- */
-
+  async function fetchRawEmails() {
+    try {
+      const result = await callFunction('fetch-gmail-raw')
+      console.log('Fetched raw emails:', result)
+      syncStatus.value = `Fetched ${result.stored} raw emails.`
+    } catch (err: unknown) {
+      syncError.value = err instanceof Error ? err.message : 'Fetch failed'
+      syncStatus.value = 'Error fetching raw emails'
+    }
+  }
+  
   async function refreshEmails() {
     if (import.meta.server) return
   
@@ -148,5 +158,6 @@ export function useDashboard() {
     /* actions */
     refreshEmails,
     loadSubscriptions,
+    fetchRawEmails,
   }
 }

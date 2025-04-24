@@ -165,28 +165,46 @@ if (dbErr) console.error('DB error (users update)', dbErr)
 
     /* ❷ helper: grab decoded text/plain ------------------------- */
     function extractPlainText(payload: any): string {
-      const stack = [payload];
-      let htmlFallback: string | null = null;
+      // --- depth‑first walk ----------------------------------------------------
+      const stack: any[] = [payload];
     
       while (stack.length) {
         const node = stack.pop();
-        if (node?.body?.data) {
-          const raw = atob(node.body.data.replace(/-/g, "+").replace(/_/g, "/"));
-          const decoded = qpDecode(raw);
+        if (!node) continue;
     
-          if (node.mimeType === "text/plain") return decoded;
-          if (!htmlFallback && node.mimeType === "text/html")
-            htmlFallback = decoded.replace(/<[^>]+>/g, " ");
+        // we only care about leaf parts that carry data
+        if (!node.body?.data) {
+          if (node.parts) stack.push(...node.parts);
+          continue;
         }
-        if (node?.parts) stack.push(...node.parts);
+    
+        // 1) base‑64 → raw string
+        const raw =
+          atob(node.body.data.replace(/-/g, "+").replace(/_/g, "/"));
+    
+        // 2) quoted‑printable → string  (handles “=XX” and soft line breaks “=\n”)
+        const qp = raw                                  // remove soft breaks
+          .replace(/=(?:\r\n?|\n)/g, "")
+          .replace(/=([0-9A-F]{2})/gi, (_, h) =>
+            String.fromCharCode(parseInt(h, 16)),
+          );
+    
+        // 3) plain or html?
+        if (node.mimeType?.startsWith("text/plain")) {
+          return qp;
+        }
+        if (node.mimeType?.startsWith("text/html")) {
+          return qp
+            .replace(/<[^>]+>/g, " ")          // strip tags
+            .replace(/&nbsp;|&#160;/gi, " ")   // entities → space
+            .replace(/\s+/g, " ")              // collapse whitespace
+            .trim();
+        }
       }
-      return htmlFallback ?? "";
+      return ""; // none found
     }
     
     
-
-    
-
     const headers = Object.fromEntries(
       msg.payload.headers.map((h: any) => [h.name.toLowerCase(), h.value])
     )
@@ -197,14 +215,11 @@ if (dbErr) console.error('DB error (users update)', dbErr)
 
     /* inside the loop, right after we build `headers` … ---------- */
     const bodyText  = extractPlainText(msg);
-    const haystack0 = `${subject} ${msg.snippet} ${bodyText}`;
-    
+    const haystack = `${subject} ${msg.snippet} ${bodyText}`
+      .replace(/\u00A0/g, " ")                          // ← NB‑space
+      .replace(/[\u034F\u200B-\u200D\u2060\uFEFF]/g, "");// zero‑width
+  
 
-    // eslint-disable-next-line no-misleading-character-class
-    const haystack = haystack0.replace(
-      /[\u034F\u200B\u200C\u200D\u2060\uFEFF]/g,
-      ""
-    );
     if (subject.includes("JACK INGRAM MEDIA") || subject.includes("Railway")) {
       console.log("‑‑‑ DEBUG haystack ‑‑‑");
       console.log(haystack);

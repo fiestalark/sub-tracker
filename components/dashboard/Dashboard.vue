@@ -10,6 +10,10 @@
           Refresh Emails
         </span>
       </AppButton>
+      <AppButton :disabled="isLoading" @click="fetchRawEmails">
+        Fetch Raw Emails
+      </AppButton>
+
     </div>
 
     <!-- Sync Status Message -->
@@ -85,6 +89,7 @@ const {
   syncStatus, 
   syncError, 
   refreshEmails, 
+  fetchRawEmails,
   unparsed: unparsedRef // Add unparsed here
 } = useDashboard()
 
